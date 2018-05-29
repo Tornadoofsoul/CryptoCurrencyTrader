@@ -36,19 +36,20 @@ def tensorflow_cnn_fitting(
     train_price = price_data[train_indices, :]
 
     conv1 = Conv2D(
-        3,
-        (1, 4),
+        2,
+        (1, 3),
         activation='relu',)(input1)
     conv2 = Conv2D(
         10,
-        (1, input_size[2] - 3),
+        (1, input_size[2] - 2),
         activation='relu',
         kernel_regularizer=l2(5E-9))(conv1)
     conv3 = Conv2D(
         1,
         (1, 1),
         activation='relu',
-        kernel_regularizer=l2(5E-8))(conv2)
+        kernel_regularizer=l2(5E-8),
+        padding='valid')(conv2)
     flat1 = Flatten()(conv3)
     preds = Activation('softmax')(flat1)
 
@@ -105,10 +106,11 @@ def random_fit_generator(data, labels, batch_size, sample_bias=5E-5):
     data_length = len(data)
 
     while True:
-        slice_start = data_length\
-                      - int(data_length * np.log(np.random.random())
-                          / np.log(sample_bias * (1 - sample_bias)))\
-                      - batch_size - 1
+        geometric_dist = np.random.geometric(p=sample_bias)
+        slice_start = data_length - geometric_dist - batch_size
+
+        if slice_start < 0:
+            slice_start = 0
 
         yield data[slice_start:slice_start+batch_size, :, :, :], labels[slice_start:slice_start+batch_size]
 
@@ -120,6 +122,9 @@ def custom_loss(y_true, y_pred):
     _, cum_log_return = calculate_portfolio_value_backend(y_pred, y_true)
 
     return 1 - cum_log_return
+
+
+
 
 
 
